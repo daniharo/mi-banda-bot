@@ -10,7 +10,9 @@
     "dev": "nodemon src/app.ts"
   },
   "dependencies": {
+    "@grammyjs/i18n": "^0.5.0",
     "@prisma/client": "^3.6.0",
+    "dotenv": "^10.0.0",
     "grammy": "^1.5.3"
   },
   "devDependencies": {
