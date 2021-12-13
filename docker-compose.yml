@@ -6,6 +6,8 @@ services:
       - postgres
     volumes:
       - ./src:/opt/project/src
+    environment:
+      WAIT_HOSTS: postgres:5432
 
   postgres:
     image: postgres:14.1

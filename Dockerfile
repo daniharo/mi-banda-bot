@@ -7,6 +7,7 @@ RUN yarn --frozen-lockfile
 
 COPY . .
 RUN ["yarn", "run", "prisma", "generate"]
-RUN ["yarn", "run", "prisma", "migrate", "deploy"]
+ADD https://github.com/ufoscout/docker-compose-wait/releases/download/2.9.0/wait /wait
+RUN chmod +x /wait
 RUN ["chmod", "+x", "./scripts/start.sh"]
-CMD ./scripts/start.sh
+CMD /wait && ./scripts/start.sh
