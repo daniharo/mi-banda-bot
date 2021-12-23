@@ -1,4 +1,4 @@
-import {Bot, Context, session} from "grammy";
+import { Bot, Context, session } from "grammy";
 import { I18n, I18nContext } from "@grammyjs/i18n";
 import dotenv from "dotenv";
 import prismaClient from "./prisma/PrismaClient";
@@ -17,35 +17,68 @@ const i18n = new I18n({
   useSession: true,
 });
 
-const bot = new Bot<MyContext>(process.env.BOT_TOKEN);
-bot.use(session());
+const bot = new Bot<MyContext>(process.env.BOT_TOKEN ?? "");
+// bot.use(session());
 bot.use(i18n.middleware());
 
 bot.api.setMyCommands([
   { command: "start", description: "Start the bot" },
   { command: "list", description: "List words" },
   { command: "add", description: "Add a word" },
+  { command: "delete", description: "Delete a word" },
 ]);
 
 bot.command("start", (ctx) => ctx.reply(ctx.i18n.t("hey")));
 
 bot.command("list", async (ctx) => {
   const words = await prismaClient.word.findMany();
-  const wordList = words.map(word => `- ${word.word}`);
-  ctx.reply('Word list:\n' + wordList.join("\n"));
+  if (words.length > 0) {
+    const wordList = words.map((word) => `- ${word.word}`);
+    ctx.reply("Word list:\n" + wordList.join("\n"));
+  } else {
+    await ctx.reply("Word list is empty.");
+    ctx.reply("😬");
+  }
 });
 
 bot.command("add", async (ctx) => {
   const word = ctx.match;
-  await prismaClient.word.create({
-    data: { word }
-  })
-  ctx.reply(`Created word "${word}"`)
-})
+  try {
+    const reply = ctx.reply(`Adding word "${word}"`, {
+      reply_to_message_id: ctx.message?.message_id,
+    });
+    await prismaClient.word.create({
+      data: { word },
+    });
+    const awaitedReply = await reply;
+    ctx.api.editMessageText(
+      ctx.chat.id,
+      awaitedReply.message_id,
+      `Created word "${word}"`
+    );
+    //ctx.reply(`Created word "${word}"`);
+  } catch {
+    ctx.reply("Sorry, something happened :(");
+  }
+});
 
-bot.on("message", (ctx) => {
-  const message = ctx.message;
-  ctx.reply(`${ctx.i18n.t("received")}: ${message.text}`);
+bot.command("delete", async (ctx) => {
+  const word = ctx.match;
+  const deleted = await prismaClient.word.deleteMany({
+    where: { word: { equals: word } },
+  });
+  if (deleted.count > 0) {
+    ctx.reply("Deleted word: " + word);
+  } else {
+    ctx.reply("Word does not exist");
+  }
+});
+
+bot.on("message", async (ctx) => {
+  await ctx.reply("Lo siento, no sé de qué me hablas...", {
+    reply_to_message_id: ctx.msg.message_id,
+  });
+  ctx.reply("🙄");
   console.log(ctx.message);
 });
 
