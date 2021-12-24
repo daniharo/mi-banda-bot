@@ -31,7 +31,9 @@ bot.api.setMyCommands([
 bot.command("start", (ctx) => ctx.reply(ctx.i18n.t("hey")));
 
 bot.command("list", async (ctx) => {
-  const words = await prismaClient.word.findMany();
+  const words = await prismaClient.word.findMany({
+    where: { userId: { equals: ctx.msg.from?.id } },
+  });
   if (words.length > 0) {
     const wordList = words.map((word) => `- ${word.word}`);
     ctx.reply("Word list:\n" + wordList.join("\n"));
@@ -48,7 +50,7 @@ bot.command("add", async (ctx) => {
       reply_to_message_id: ctx.message?.message_id,
     });
     await prismaClient.word.create({
-      data: { word },
+      data: { word, userId: ctx.from?.id ?? -1 },
     });
     const awaitedReply = await reply;
     ctx.api.editMessageText(
@@ -65,7 +67,9 @@ bot.command("add", async (ctx) => {
 bot.command("delete", async (ctx) => {
   const word = ctx.match;
   const deleted = await prismaClient.word.deleteMany({
-    where: { word: { equals: word } },
+    where: {
+      AND: { word: { equals: word }, userId: { equals: ctx.from?.id } },
+    },
   });
   if (deleted.count > 0) {
     ctx.reply("Deleted word: " + word);
